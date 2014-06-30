@@ -33,7 +33,8 @@ public class ItalianModel {
 	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException {
 		ItalianModel im = new ItalianModel();
 		String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: «Torniamo dall’Europa avendo vinto una battaglia di metodo e di sostanza», dice Renzi."
-				+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868-6867-2439";
+				+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
+		//String stmt="Il mio gatto Fuffi mangia i formaggini Mio con gusto";
 		System.err.println(stmt);
 		String[] tokens = im.tokenizer.tokenize(stmt);
 		int p=0;

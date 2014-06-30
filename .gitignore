@@ -1,0 +1,7 @@
+src/main/resources/
+src/test/resources/
+.classpath
+.project
+.settings
+target/
+

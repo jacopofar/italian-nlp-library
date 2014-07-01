@@ -20,6 +20,7 @@ import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
+import opennlp.tools.util.Span;
 
 import com.github.jacopofar.italib.ItalianVerbConjugation.ConjugationException;
 import com.github.jacopofar.italib.postagger.POSUtils;
@@ -264,6 +265,19 @@ public class ItalianModel {
 
 	public String[] tokenize(String statement){
 		return this.tokenizer.tokenize(statement);
+	}
+
+
+	/**
+	 * Tokenize and run POS tagging on the given text, returns an array of spans, each with the POS tag as the Span type
+	 * */
+	public Span[] getPosTags(String text) {
+		Span[] spans = tokenizer.tokenizePos(text);
+		String[] tags = POStagger.tag(Span.spansToStrings(spans, ""));
+		for(int i=0;i<spans.length;i++){
+			spans[i]=new Span(spans[i].getStart(), spans[i].getEnd(), tags[i]);
+		}
+		return spans;
 	}
 
 }

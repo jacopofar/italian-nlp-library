@@ -33,6 +33,7 @@ public class ItalianModel {
 
 	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException {
 		ItalianModel im = new ItalianModel();
+		System.out.println(im.getAllVerbConjugations("smaccadere"));
 		String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: «Torniamo dall’Europa avendo vinto una battaglia di metodo e di sostanza», dice Renzi."
 				+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
 		//String stmt="Il mio gatto Fuffi mangia i formaggini Mio con gusto";
@@ -79,7 +80,7 @@ public class ItalianModel {
 
 	private POSTaggerME POStagger;
 	private TokenizerME tokenizer;
-	
+
 	/**
 	 * Load a model reading the data from the given folder
 	 * If the folder is null, it will look inside the resource folder
@@ -216,8 +217,14 @@ public class ItalianModel {
 
 	public String getVerbConjugation(String infinitive, String mode) {
 		try {
-			PreparedStatement ps = connectionVerb.prepareStatement("SELECT conjugated FROM verb_conjugations "
-					+ "WHERE infinitive=? AND form=?");
+			PreparedStatement ps=null;
+			if(ItalianVerbConjugation.isImpersonalMode(mode)){
+				ps = connectionVerb.prepareStatement("SELECT conjugated FROM verb_conjugations "
+						+ "WHERE infinitive=? AND form=?");	
+			}
+			else{
+				throw new RuntimeException("requested a verb conjugation without a person and number, but "+mode+" is not an impersonal form");
+			}
 			ps.setString(1, infinitive);
 			ps.setString(2, mode);
 
@@ -273,11 +280,45 @@ public class ItalianModel {
 	 * */
 	public Span[] getPosTags(String text) {
 		Span[] spans = tokenizer.tokenizePos(text);
-		String[] tags = POStagger.tag(Span.spansToStrings(spans, ""));
+		String[] tags = POStagger.tag(Span.spansToStrings(spans, text));
 		for(int i=0;i<spans.length;i++){
 			spans[i]=new Span(spans[i].getStart(), spans[i].getEnd(), tags[i]);
 		}
 		return spans;
+	}
+
+
+	public Set<String> getAllVerbConjugations(String infinitive) {
+		HashSet<String> res=new HashSet<String> ();
+		ItalianVerbConjugation v = new ItalianVerbConjugation(this);
+		v.setInfinitive(infinitive);
+		for(String mode:ItalianVerbConjugation.getImpersonalModes()){
+			v.setMode(mode);
+			try {
+				res.add(v.getConjugated());
+			} catch (ConjugationException e) {
+				e.printStackTrace();
+			}
+		}
+		for(String mode:ItalianVerbConjugation.getPersonalModes()){
+			for(int person:new Integer[]{1,2,3}){
+				for(char num:new Character[]{'s','p'}){
+					if(mode.equals("imperative") && person==1 &&num==1)
+						continue;
+					v.setMode(mode);
+					v.setNumber(num);
+					v.setPerson(person);
+					try {
+						res.add(v.getConjugated());
+					} catch (ConjugationException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		return res;
+
 	}
 
 }

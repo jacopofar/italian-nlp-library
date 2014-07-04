@@ -16,4 +16,9 @@
 			<version>1.5.3</version>
 		</dependency>
 	</dependencies>
+	 <resources>
+     <resource>
+       <directory>src/resources</directory>
+     </resource>
+     </resources>
 </project>

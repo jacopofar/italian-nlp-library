@@ -83,14 +83,14 @@ public class ItalianVerbConjugation {
 		defaultSuffixes.put("are,subjunctive imperfect,1,s","assi");
 		defaultSuffixes.put("are,subjunctive imperfect,1,p","assimo");
 
-		
+
 		defaultSuffixes.put("ere,subjunctive imperfect,3,p","essero");
 		defaultSuffixes.put("ere,subjunctive imperfect,3,s","esse");
 		defaultSuffixes.put("ere,subjunctive imperfect,2,s","essi");
 		defaultSuffixes.put("ere,subjunctive imperfect,2,p","este");
 		defaultSuffixes.put("ere,subjunctive imperfect,1,s","essi");
 		defaultSuffixes.put("ere,subjunctive imperfect,1,p","essimo");
-		
+
 		defaultSuffixes.put("ire,subjunctive imperfect,1,s","issi");
 		defaultSuffixes.put("ire,subjunctive imperfect,2,s","isti");
 		defaultSuffixes.put("ire,subjunctive imperfect,3,s","isse");
@@ -141,7 +141,7 @@ public class ItalianVerbConjugation {
 		defaultSuffixes.put("are,gerund","ando");
 		defaultSuffixes.put("ere,gerund","endo");
 		defaultSuffixes.put("ire,gerund","endo");
-		
+
 		defaultSuffixes.put("are,infinitive","are");
 		defaultSuffixes.put("ere,infinitive","ere");
 		defaultSuffixes.put("ire,infinitive","ire");
@@ -160,15 +160,15 @@ public class ItalianVerbConjugation {
 		defaultSuffixes.put("are,indicative imperfect,1,p","avamo");
 		defaultSuffixes.put("are,indicative imperfect,2,p","avate");
 		defaultSuffixes.put("are,indicative imperfect,3,p","avano");
-		
-		
+
+
 		defaultSuffixes.put("ere,indicative imperfect,1,s","evo");
 		defaultSuffixes.put("ere,indicative imperfect,2,s","evi");
 		defaultSuffixes.put("ere,indicative imperfect,3,s","eva");
 		defaultSuffixes.put("ere,indicative imperfect,1,p","evamo");
 		defaultSuffixes.put("ere,indicative imperfect,2,p","evate");
 		defaultSuffixes.put("ere,indicative imperfect,3,p","evano");
-		
+
 		defaultSuffixes.put("ire,indicative imperfect,1,s","ivo");
 		defaultSuffixes.put("ire,indicative imperfect,2,s","ivi");
 		defaultSuffixes.put("ire,indicative imperfect,3,s","iva");
@@ -176,9 +176,72 @@ public class ItalianVerbConjugation {
 		defaultSuffixes.put("ire,indicative imperfect,2,p","ivate");
 		defaultSuffixes.put("ire,indicative imperfect,3,p","ivano");
 		
+		defaultSuffixes.put("are,indicative present,3,s","a");
+		defaultSuffixes.put("are,indicative present,2,s","i");
+
 		
+		defaultSuffixes.put("are,conditional,1,s","erei");
+		defaultSuffixes.put("are,conditional,1,p","eremmo");
+		defaultSuffixes.put("are,conditional,2,s","eresti");
+		defaultSuffixes.put("are,conditional,2,p","ereste");
+		defaultSuffixes.put("are,conditional,3,s","erebbe");
+		defaultSuffixes.put("are,conditional,3,p","erebbero");
+
+		
+		defaultSuffixes.put("are,subjunctive present,1,p","assimo");
+		defaultSuffixes.put("are,subjunctive present,2,p","assimo");
+		defaultSuffixes.put("are,subjunctive present,3,p","assimo");
+		
+		defaultSuffixes.put("are,indicative present,1,s","o");
+		defaultSuffixes.put("are,indicative present,1,p","iamo");
+		defaultSuffixes.put("are,indicative present,2,p","ate");
+		defaultSuffixes.put("are,indicative present,3,p","ano");
+		
+		
+		
+		
+		defaultSuffixes.put("ere,indicative present,3,s","e");
+		defaultSuffixes.put("ere,indicative present,2,s","i");
+		defaultSuffixes.put("ere,conditional,1,s","rei");
+		defaultSuffixes.put("ere,conditional,1,p","remmo");
+		defaultSuffixes.put("ere,conditional,2,s","resti");
+		defaultSuffixes.put("ere,conditional,2,p","reste");
+		defaultSuffixes.put("ere,conditional,3,s","rebbe");
+		defaultSuffixes.put("ere,conditional,3,p","rebbero");
+		defaultSuffixes.put("ere,subjunctive present,1,p","essimo");
+		defaultSuffixes.put("ere,subjunctive present,2,p","essimo");
+		defaultSuffixes.put("ere,subjunctive present,3,p","essimo");
+		defaultSuffixes.put("ere,indicative present,1,s","o");
+		defaultSuffixes.put("ere,indicative present,1,p","iamo");
+		defaultSuffixes.put("ere,indicative present,2,p","ate");
+		defaultSuffixes.put("ere,indicative present,3,p","ano");
 		
 	}
+
+	public static Set<String> getImpersonalModes(){
+		HashSet<String> res=new HashSet<String>();
+		res.add(modeRepresentations.get(Mode.GERUND));
+		res.add(modeRepresentations.get(Mode.PAST_PARTICIPLE));
+		res.add(modeRepresentations.get(Mode.PRESENT_PARTICIPLE));
+		res.add(modeRepresentations.get(Mode.INFINITIVE));
+		return res;
+	}
+
+	public static Set<String> getPersonalModes() {
+		HashSet<String> res=new HashSet<String>();
+
+		
+		res.add(modeRepresentations.get(Mode.INDICATIVE_PRESENT));
+		res.add(modeRepresentations.get(Mode.INDICATIVE_IMPERFECT));
+		res.add(modeRepresentations.get(Mode.INDICATIVE_PAST_HISTORIC));
+		res.add(modeRepresentations.get(Mode.INDICATIVE_FUTURE));
+		res.add(modeRepresentations.get(Mode.CONDITIONAL_PRESENT));
+		res.add(modeRepresentations.get(Mode.SUBJUNCTIVE_PRESENT));
+		res.add(modeRepresentations.get(Mode.SUBJUNCTIVE_IMPERFECT));
+		res.add(modeRepresentations.get(Mode.IMPERATIVE));
+		return res;
+	}
+
 	/**
 	 * Instantiates a verb conjugation object starting from the string representation from the toStringRepresentation method
 	 * */
@@ -313,7 +376,7 @@ public class ItalianVerbConjugation {
 		for(Entry<String, String> ds:defaultSuffixes.entrySet()){
 			if(word.endsWith(ds.getValue())){
 				ItalianVerbConjugation ic = new ItalianVerbConjugation(italianModel);
-				
+
 				String[] params = ds.getKey().split(",");
 				ic.infinitive=word.substring(0,word.length()-ds.getValue().length())+params[0];
 				ic.setMode(params[1]);
@@ -334,8 +397,21 @@ public class ItalianVerbConjugation {
 		}
 		return res;
 	}
-	
+
 	public int hashCode(){
 		return this.toString().hashCode();
 	}
+
+	public static boolean isImpersonalMode(String mode2) {
+		for(Entry<Mode, String> mr:modeRepresentations.entrySet()){
+			if(mr.getValue().equals(mode2)){
+				Mode mode=mr.getKey();
+				if(mode==Mode.GERUND || mode==Mode.PAST_PARTICIPLE || mode==Mode.PRESENT_PARTICIPLE || mode==Mode.INFINITIVE)
+					return true;
+				else return false;
+			}
+		}
+		throw new RuntimeException("ERROR, the verbal mode '"+mode2+"' is unknown");
+	}
+
 }

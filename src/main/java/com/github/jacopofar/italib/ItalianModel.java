@@ -33,9 +33,10 @@ public class ItalianModel {
 
 	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException {
 		ItalianModel im = new ItalianModel();
-		System.out.println(im.getAllVerbConjugations("smaccadere"));
-		String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: «Torniamo dall’Europa avendo vinto una battaglia di metodo e di sostanza», dice Renzi."
-				+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
+		//showcase of functions
+
+		String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: 'Torniamo dall'Europa avendo vinto una battaglia di metodo e di sostanza', dice Renzi."
+				+ "Il mio numero di telefono personale Ã¨ +39 0268680762836 e non +39 5868 6867 2439";
 		//String stmt="Il mio gatto Fuffi mangia i formaggini Mio con gusto";
 		System.err.println(stmt);
 		String[] tokens = im.tokenizer.tokenize(stmt);
@@ -47,7 +48,7 @@ public class ItalianModel {
 		System.out.println("-----");
 		for(String t:tokens)
 			System.out.println(t+":"+Arrays.deepToString(im.getPOSvalues(t)));
-		String[] verbi = {"andavamo","mangerò","volare","correre","puffavo","googlare"};
+		String[] verbi = {"andavamo","mangerÃ²","volare","correre","puffavo","googlare"};
 		HashMap<String,String> people=new HashMap<String,String>(6);
 		people.put("io", "1s");
 		people.put("tu", "2s");
@@ -73,6 +74,83 @@ public class ItalianModel {
 				}
 			}
 		}
+		Set<String> forms = im.getAllKnownInfinitiveVerbs();
+		System.out.println("There are "+forms.size()+" infinitive verbs in the database");
+		ItalianVerbConjugation fakeVerb = new ItalianVerbConjugation(im);
+		int notInDB=0,
+				corresponding=0,
+				irregular=0;
+		HashMap<String,Integer> errors=new HashMap<String,Integer>(200);
+		for(String v:forms){
+			if(!v.endsWith("are") && !v.endsWith("ere") && !v.endsWith("ire") )
+				continue;
+			ItalianVerbConjugation current = new ItalianVerbConjugation(im);
+			current.setInfinitive(v);
+			fakeVerb.setInfinitive("eee"+v);
+			//now there are two verbs, one in the database (for at least one form) and the other not in it
+			
+			for(String mode:ItalianVerbConjugation.getImpersonalModes()){
+				current.setMode(mode);
+				fakeVerb.setMode(mode);
+				String conjugated;
+				try {
+					conjugated=current.getConjugated(false);
+				} catch (ConjugationException e) {
+					notInDB++;
+					continue;	
+				}
+				try {
+					if(fakeVerb.getConjugated(true).substring(3).equals(conjugated))
+						corresponding++;
+					else{
+						System.out.println("irregular form of "+v+" --> "+conjugated+ " ["+fakeVerb.getConjugated(true).substring(3)+"] "+mode);
+						irregular++;
+					}
+				} catch (ConjugationException e) {
+					//should never happen
+					e.printStackTrace();
+				}
+
+			}
+			for(String mode:ItalianVerbConjugation.getPersonalModes()){
+				for(int person:new Integer[]{1,2,3}){
+					for(char num:new Character[]{'s','p'}){
+						String conjugated;
+						if(mode.equals("imperative") && person==1 && num=='s')
+							continue;
+						current.setMode(mode);
+						current.setNumber(num);
+						current.setPerson(person);
+
+						fakeVerb.setMode(mode);
+						fakeVerb.setNumber(num);
+						fakeVerb.setPerson(person);
+						try {
+							conjugated=current.getConjugated(false);
+						} catch (ConjugationException e) {
+							notInDB++;
+							continue;	
+						}
+						try {
+							if(fakeVerb.getConjugated(true).substring(3).equals(conjugated))
+								corresponding++;
+							else{
+								System.out.println("irregular form of "+v+" --> "+conjugated+ " ["+fakeVerb.getConjugated(true).substring(3)+"] "+mode+" "+person+" "+num);
+								errors.put(v.substring(v.length()-3)+" "+mode+" "+person+" "+num, 1+errors.getOrDefault(v.substring(v.length()-3)+" "+mode+" "+person+" "+num, 0));
+								irregular++;
+							}
+						} catch (ConjugationException e) {
+							//should never happen
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			System.out.println(v+" "+notInDB+" unknown, "+corresponding+" corresponding, "+irregular+" irregular verbs so far ("+100.0*irregular/(irregular+corresponding)+"%)");
+		}
+		System.out.println("--------------\nirregular verb cases:\n");
+		errors.entrySet().forEach(kv->System.out.println(kv.getKey()+"\t\t"+kv.getValue()));
+
 	}
 
 
@@ -286,39 +364,29 @@ public class ItalianModel {
 		}
 		return spans;
 	}
+	/**
+	 * Return the tokens in this text as Span
+	 * */
+	public Span[] getTokens(String text) {
+		return tokenizer.tokenizePos(text);
+	}
 
+	private Set<String> getAllKnownInfinitiveVerbs(){
 
-	public Set<String> getAllVerbConjugations(String infinitive) {
-		HashSet<String> res=new HashSet<String> ();
-		ItalianVerbConjugation v = new ItalianVerbConjugation(this);
-		v.setInfinitive(infinitive);
-		for(String mode:ItalianVerbConjugation.getImpersonalModes()){
-			v.setMode(mode);
-			try {
-				res.add(v.getConjugated());
-			} catch (ConjugationException e) {
-				e.printStackTrace();
+		PreparedStatement ps=null;
+		HashSet<String> res=new HashSet<String>(500);
+		try {
+			ps = connectionVerb.prepareStatement("SELECT infinitive FROM verb_conjugations WHERE form='infinitive'");
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()){
+				res.add(rs.getString("infinitive"));
 			}
-		}
-		for(String mode:ItalianVerbConjugation.getPersonalModes()){
-			for(int person:new Integer[]{1,2,3}){
-				for(char num:new Character[]{'s','p'}){
-					if(mode.equals("imperative") && person==1 &&num==1)
-						continue;
-					v.setMode(mode);
-					v.setNumber(num);
-					v.setPerson(person);
-					try {
-						res.add(v.getConjugated());
-					} catch (ConjugationException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			}
-		}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
 		return res;
 
 	}
+
 
 }

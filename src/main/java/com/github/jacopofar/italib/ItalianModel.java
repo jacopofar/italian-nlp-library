@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
@@ -30,14 +31,21 @@ import com.github.jacopofar.italib.postagger.POSUtils;
  * The model is based on Apache OpenNLP and the data extracted by com.github.jacopofar.conceptnetextractor
  * */
 public class ItalianModel {
-
-	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException {
+	private ConcurrentHashMap<String,Span[]> tagCache=new ConcurrentHashMap<String,Span[]>();
+	private final static int MAX_POS_CACHE=20;
+	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, ConjugationException {
 		ItalianModel im = new ItalianModel();
 		//showcase of functions
-
-		String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: 'Torniamo dall'Europa avendo vinto una battaglia di metodo e di sostanza', dice Renzi."
-				+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
-		//String stmt="Il mio gatto Fuffi mangia i formaggini Mio con gusto";
+		ItalianVerbConjugation essere = new ItalianVerbConjugation(im);
+		essere.setInfinitive("essere");
+		essere.setMode("indicative present");
+		essere.setNumber('s');
+		essere.setPerson(3);
+		
+		System.out.println("lui "+essere.getConjugated());
+		//String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: 'Torniamo dall'Europa avendo vinto una battaglia di metodo e di sostanza', dice Renzi."
+				//+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
+		String stmt="io vado in calabria al mare";
 		System.err.println(stmt);
 		String[] tokens = im.tokenizer.tokenize(stmt);
 		int p=0;
@@ -76,6 +84,12 @@ public class ItalianModel {
 		}
 		Set<String> forms = im.getAllKnownInfinitiveVerbs();
 		System.out.println("There are "+forms.size()+" infinitive verbs in the database");
+		System.out.println("Starting to count irregular forms in 10 seconds...");
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
 		ItalianVerbConjugation fakeVerb = new ItalianVerbConjugation(im);
 		int notInDB=0,
 				corresponding=0,
@@ -357,11 +371,16 @@ public class ItalianModel {
 	 * Tokenize and run POS tagging on the given text, returns an array of spans, each with the POS tag as the Span type
 	 * */
 	public Span[] getPosTags(String text) {
+		if(tagCache.contains(text))
+			return tagCache.get(text);
 		Span[] spans = tokenizer.tokenizePos(text);
 		String[] tags = POStagger.tag(Span.spansToStrings(spans, text));
 		for(int i=0;i<spans.length;i++){
 			spans[i]=new Span(spans[i].getStart(), spans[i].getEnd(), tags[i]);
 		}
+		if(tagCache.size()>MAX_POS_CACHE)
+			tagCache.clear();
+		tagCache.put(text, spans);
 		return spans;
 	}
 	/**

@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+
 /**
  * Represents an Italian verb conjugation and provide methods to change the form, person and number according to a model for Italian
  * */
@@ -182,7 +183,7 @@ public class ItalianVerbConjugation {
 		defaultSuffixes.put("ire,indicative future,2,p","irete");
 		defaultSuffixes.put("ire,indicative future,3,s","irà");
 		defaultSuffixes.put("ire,indicative future,3,p","iranno");
-		
+
 		defaultSuffixes.put("ire,indicative imperfect,1,p","ivamo");
 		defaultSuffixes.put("ire,indicative imperfect,1,s","ivo");
 		defaultSuffixes.put("ire,indicative imperfect,2,p","ivate");
@@ -271,6 +272,8 @@ public class ItalianVerbConjugation {
 	}
 
 	public String getConjugated(boolean guess) throws ConjugationException {
+		if(infinitive==null)
+			throw new ConjugationException("Infinitive not set, nothing to conjugate");
 		if(conjugated!=null)
 			return conjugated;
 		//impersonal mode? retrieve it
@@ -317,17 +320,17 @@ public class ItalianVerbConjugation {
 				if(root.endsWith("i")&&(defaultSuffix.startsWith("i"))){
 					this.conjugated=root.substring(0,root.length()-1)+defaultSuffix;
 				}
-				
+
 				//"rinfreschi", not "rinfresci"
 				if(root.endsWith("c")&&(defaultSuffix.startsWith("e") || defaultSuffix.startsWith("i"))){
 					this.conjugated=root.substring(0,root.length())+"h"+defaultSuffix;
 				}
-				
+
 				//"collocheremmo", not "colloceremmo"
 				if(root.endsWith("c")&&(defaultSuffix.startsWith("e"))){
 					this.conjugated=root.substring(0,root.length())+"h"+defaultSuffix;
 				}
-				
+
 
 				//if none of the above was applied, use the default suffix
 				if(this.conjugated==null){
@@ -433,6 +436,14 @@ public class ItalianVerbConjugation {
 			}
 		}
 		throw new RuntimeException("ERROR, the verbal mode '"+mode2+"' is unknown");
+	}
+
+	public String toJSON() {
+		return "{'infinitive':'"+this.infinitive+"'"
+				+ ",'mode':'"+this.getMode()+"'"
+				+ (this.number==0?"":(",'number':'"+this.getNumber()+"'"))
+				+ (this.person==0?"":(",'person':'"+this.getPerson()+"'"))
+				+ "}";
 	}
 
 }

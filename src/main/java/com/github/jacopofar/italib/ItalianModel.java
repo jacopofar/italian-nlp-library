@@ -19,6 +19,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
+import opennlp.tools.sentdetect.SentenceDetectorME;
+import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
@@ -32,7 +34,7 @@ import com.github.jacopofar.italib.postagger.POSUtils;
  * */
 public class ItalianModel {
 	private ConcurrentHashMap<String,Span[]> tagCache=new ConcurrentHashMap<String,Span[]>();
-	private final static int MAX_POS_CACHE=20;
+	private final static int MAX_POS_CACHE=40;
 	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, ConjugationException {
 		ItalianModel im = new ItalianModel();
 		//showcase of functions
@@ -41,10 +43,10 @@ public class ItalianModel {
 		essere.setMode("indicative present");
 		essere.setNumber('s');
 		essere.setPerson(3);
-		
+
 		System.out.println("lui "+essere.getConjugated());
 		//String stmt="Lo ha detto il premier Matteo Renzi al termine del vertice Ue, a Bruxelles, un incontro che nonostante tutte le incognite lo lascia soddisfatto: 'Torniamo dall'Europa avendo vinto una battaglia di metodo e di sostanza', dice Renzi."
-				//+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
+		//+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
 		String stmt="io vado in calabria al mare";
 		System.err.println(stmt);
 		String[] tokens = im.tokenizer.tokenize(stmt);
@@ -102,7 +104,7 @@ public class ItalianModel {
 			current.setInfinitive(v);
 			fakeVerb.setInfinitive("eee"+v);
 			//now there are two verbs, one in the database (for at least one form) and the other not in it
-			
+
 			for(String mode:ItalianVerbConjugation.getImpersonalModes()){
 				current.setMode(mode);
 				fakeVerb.setMode(mode);
@@ -172,6 +174,7 @@ public class ItalianModel {
 
 	private POSTaggerME POStagger;
 	private TokenizerME tokenizer;
+	private SentenceDetectorME sentencer;
 
 	/**
 	 * Load a model reading the data from the given folder
@@ -216,6 +219,7 @@ public class ItalianModel {
 		try {
 
 			this.POStagger = new POSTaggerME(new POSModel(modelIn));
+
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -229,6 +233,14 @@ public class ItalianModel {
 					e.printStackTrace();
 				}
 			}
+		}
+
+		//load the sentencer model for OpenNLP
+		InputStream modelInSentence = new FileInputStream(modelFolder+"/it-sent.bin");
+		try {
+			sentencer=new SentenceDetectorME(new SentenceModel(modelInSentence));
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -345,7 +357,11 @@ public class ItalianModel {
 	 * The dictionary of POS tags is not used
 	 * */
 	public String[] quickPOSTag(String sentence){
-		return POStagger.tag(tokenizer.tokenize(sentence));
+		synchronized(tokenizer){
+			synchronized(POStagger){
+				return POStagger.tag(tokenizer.tokenize(sentence));
+			}
+		}
 	}
 
 	protected String[] getPOSvalues(String word){
@@ -363,7 +379,9 @@ public class ItalianModel {
 	}
 
 	public String[] tokenize(String statement){
-		return this.tokenizer.tokenize(statement);
+		synchronized(tokenizer){
+			return this.tokenizer.tokenize(statement);
+		}
 	}
 
 
@@ -371,23 +389,39 @@ public class ItalianModel {
 	 * Tokenize and run POS tagging on the given text, returns an array of spans, each with the POS tag as the Span type
 	 * */
 	public Span[] getPosTags(String text) {
+		Span[] spans;
 		if(tagCache.contains(text))
 			return tagCache.get(text);
-		Span[] spans = tokenizer.tokenizePos(text);
-		String[] tags = POStagger.tag(Span.spansToStrings(spans, text));
+		if(tagCache.size()>MAX_POS_CACHE)
+			tagCache.clear();
+
+
+		String[] tags;
+
+
+		synchronized(tokenizer){
+			spans = tokenizer.tokenizePos(text);
+		}
+		synchronized(POStagger){
+			tags= POStagger.tag(Span.spansToStrings(spans, text));
+		}
+
 		for(int i=0;i<spans.length;i++){
 			spans[i]=new Span(spans[i].getStart(), spans[i].getEnd(), tags[i]);
 		}
-		if(tagCache.size()>MAX_POS_CACHE)
-			tagCache.clear();
+
 		tagCache.put(text, spans);
 		return spans;
 	}
+
+
 	/**
 	 * Return the tokens in this text as Span
 	 * */
 	public Span[] getTokens(String text) {
-		return tokenizer.tokenizePos(text);
+		synchronized(tokenizer){
+			return tokenizer.tokenizePos(text);
+		}
 	}
 
 	private Set<String> getAllKnownInfinitiveVerbs(){
@@ -405,6 +439,13 @@ public class ItalianModel {
 		}	
 		return res;
 
+	}
+
+	/**
+	 * Split a text in sentences, returning them as an array
+	 * */
+	public synchronized String[] getSentences(String text){
+		return sentencer.sentDetect(text);
 	}
 
 

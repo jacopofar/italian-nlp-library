@@ -117,4 +117,8 @@ public class POSUtils {
 
 		return "UNKNOWN TAG";
 	}
+
+	public static String[] getPossibleTags() {
+		return new String[]{"B","BN","CC","CS","DD","DE","DI","DQ","DR","E","EA","FB","FC","FF","FS","I","N","PC","PD","PE","PI","PP","PQ","PR","RD","RI","T","SA","SP","XH","XM","XE","XX","Ss","Sp","Sn","As","Ap","An","APs","APp","APn","NOs","NOp","NOn","SWs","SWp","SWn","Vip","Vip3","Vii","Vii3","Vis","Vis3","Vif","Vif3","Vcp","Vcp3","Vci","Vci3","Vdp","Vdp3","Vg","Vp","Vf","Vm","VAip","VAip3","VAii","VAii3","VAis","Vis3","VAif","VAif3","VAcp","VAcp3","VAci","VAci3","VAdp","VAdp3","VAg","VAp","VAf","VAm","VMip","VMip3","VMii","VMii3","VMis","VMis3","VMif","VMif3","VMcp","VMcp3","VMci","VMci3","VMdp","VMdp3","VMg","VMp","VMf","VMm"};
+	}
 }

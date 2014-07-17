@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
@@ -34,7 +35,7 @@ import com.github.jacopofar.italib.postagger.POSUtils;
  * */
 public class ItalianModel {
 	private ConcurrentHashMap<String,Span[]> tagCache=new ConcurrentHashMap<String,Span[]>();
-	private final static int MAX_POS_CACHE=40;
+	private final static int MAX_POS_CACHE=300;
 	public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, ConjugationException {
 		ItalianModel im = new ItalianModel();
 		//showcase of functions
@@ -49,7 +50,7 @@ public class ItalianModel {
 		//+ "Il mio numero di telefono personale è +39 0268680762836 e non +39 5868 6867 2439";
 		String stmt="io vado in calabria al mare";
 		System.err.println(stmt);
-		String[] tokens = im.tokenizer.tokenize(stmt);
+		String[] tokens =Span.spansToStrings(im.getTokens(stmt),stmt);
 		int p=0;
 		for(String t:im.quickPOSTag(stmt)){
 			System.out.println(tokens[p]+" "+t+":"+POSUtils.getDescription(t));
@@ -172,9 +173,14 @@ public class ItalianModel {
 
 	private Connection connectionVerb,connectionPOS;
 
-	private POSTaggerME POStagger;
-	private TokenizerME tokenizer;
-	private SentenceDetectorME sentencer;
+	//private POSTaggerME POStagger;
+	private ConcurrentLinkedQueue<POSTaggerME> posTaggers=new ConcurrentLinkedQueue<POSTaggerME>();
+	private ConcurrentLinkedQueue<TokenizerME> tokenizers=new ConcurrentLinkedQueue<TokenizerME>();
+
+	//private TokenizerME tokenizer;
+	//private SentenceDetectorME sentencer;
+	private ConcurrentLinkedQueue<SentenceDetectorME> sentencers=new ConcurrentLinkedQueue<SentenceDetectorME>();
+	private int concurrentInstances=200;
 
 	/**
 	 * Load a model reading the data from the given folder
@@ -200,7 +206,10 @@ public class ItalianModel {
 		InputStream modelIn = new FileInputStream(modelFolder+"/it-token.bin");
 
 		try {
-			tokenizer = new TokenizerME(new TokenizerModel(modelIn));
+			TokenizerModel model = new TokenizerModel(modelIn);
+			for(int i=0;i<concurrentInstances;i++)
+				tokenizers.add(new TokenizerME(model));
+			//tokenizer = new TokenizerME(new TokenizerModel(modelIn));
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -217,8 +226,10 @@ public class ItalianModel {
 		//load the POS tagger model for OpenNLP
 		modelIn = new FileInputStream(modelFolder+"/it-pos-maxent.bin");
 		try {
-
-			this.POStagger = new POSTaggerME(new POSModel(modelIn));
+			POSModel model = new POSModel(modelIn);
+			for(int i=0;i<concurrentInstances;i++)
+				posTaggers.add(new POSTaggerME(model));
+			//this.POStagger = new POSTaggerME(new POSModel(modelIn));
 
 		}
 		catch (IOException e) {
@@ -238,7 +249,10 @@ public class ItalianModel {
 		//load the sentencer model for OpenNLP
 		InputStream modelInSentence = new FileInputStream(modelFolder+"/it-sent.bin");
 		try {
-			sentencer=new SentenceDetectorME(new SentenceModel(modelInSentence));
+			SentenceModel model = new SentenceModel(modelInSentence);
+			for(int i=0;i<concurrentInstances;i++)
+				sentencers.add(new SentenceDetectorME(model));
+			//sentencer=new SentenceDetectorME(new SentenceModel(modelInSentence));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -357,11 +371,22 @@ public class ItalianModel {
 	 * The dictionary of POS tags is not used
 	 * */
 	public String[] quickPOSTag(String sentence){
-		synchronized(tokenizer){
-			synchronized(POStagger){
-				return POStagger.tag(tokenizer.tokenize(sentence));
-			}
-		}
+		TokenizerME tokenizer;
+		//wait to get a tokenizer
+		while((tokenizer= tokenizers.poll())==null)
+			Thread.yield();
+
+		POSTaggerME POStagger;
+		//wait to get a PoS tagger
+		while((POStagger= posTaggers.poll())==null)
+			Thread.yield();
+		String[] val = POStagger.tag(tokenizer.tokenize(sentence));
+
+		//give back the tokenizer and the tagger
+		tokenizers.add(tokenizer);
+		posTaggers.add(POStagger);
+		return val;
+
 	}
 
 	protected String[] getPOSvalues(String word){
@@ -379,9 +404,14 @@ public class ItalianModel {
 	}
 
 	public String[] tokenize(String statement){
-		synchronized(tokenizer){
-			return this.tokenizer.tokenize(statement);
-		}
+		TokenizerME tokenizer;
+		//wait to get a tokenizer
+		while((tokenizer= tokenizers.poll())==null)
+			Thread.yield();
+		String[] val = tokenizer.tokenize(statement);
+		tokenizers.add(tokenizer);
+		return val;
+
 	}
 
 
@@ -398,19 +428,32 @@ public class ItalianModel {
 
 		String[] tags;
 
+		TokenizerME tokenizer;
+		//wait to get a tokenizer
+		while((tokenizer= tokenizers.poll())==null)
+			Thread.yield();
 
-		synchronized(tokenizer){
-			spans = tokenizer.tokenizePos(text);
-		}
-		synchronized(POStagger){
-			tags= POStagger.tag(Span.spansToStrings(spans, text));
-		}
+		POSTaggerME POStagger;
+		//wait to get a PoS tagger
+		while((POStagger= posTaggers.poll())==null)
+			Thread.yield();
+
+		spans = tokenizer.tokenizePos(text);
+
+		tags= POStagger.tag(Span.spansToStrings(spans, text));
+
 
 		for(int i=0;i<spans.length;i++){
 			spans[i]=new Span(spans[i].getStart(), spans[i].getEnd(), tags[i]);
 		}
 
 		tagCache.put(text, spans);
+
+
+		//give back the tokenizer and the tagger
+		tokenizers.add(tokenizer);
+		posTaggers.add(POStagger);
+
 		return spans;
 	}
 
@@ -419,9 +462,13 @@ public class ItalianModel {
 	 * Return the tokens in this text as Span
 	 * */
 	public Span[] getTokens(String text) {
-		synchronized(tokenizer){
-			return tokenizer.tokenizePos(text);
-		}
+		TokenizerME tokenizer;
+		//wait to get a tokenizer
+		while((tokenizer= tokenizers.poll())==null)
+			Thread.yield();
+		Span[] val = tokenizer.tokenizePos(text);
+		tokenizers.add(tokenizer);
+		return val;
 	}
 
 	private Set<String> getAllKnownInfinitiveVerbs(){
@@ -444,8 +491,14 @@ public class ItalianModel {
 	/**
 	 * Split a text in sentences, returning them as an array
 	 * */
-	public synchronized String[] getSentences(String text){
-		return sentencer.sentDetect(text);
+	public String[] getSentences(String text){
+		SentenceDetectorME sentencer;
+		//wait to get a tokenizer
+		while((sentencer= sentencers.poll())==null)
+			Thread.yield();
+		String[] val = sentencer.sentDetect(text);
+		sentencers.add(sentencer);
+		return val;
 	}
 
 

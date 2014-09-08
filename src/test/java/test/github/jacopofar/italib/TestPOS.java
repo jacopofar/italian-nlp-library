@@ -35,7 +35,7 @@ public class TestPOS {
 	@Before
 	public void setUp() throws Exception {
 		im=new ItalianModel();
-		stmt="il tuo cane mangiò la mela che ti avevo lasciato, e questo mi farebbe arrabbiare molto se non sapessi che non l'ha fatto apposta";
+		stmt="il tuo cane mangiÃ² la mela che ti avevo lasciato, e questo mi farebbe arrabbiare molto se non sapessi che non l'ha fatto apposta";
 	}
 
 	/**

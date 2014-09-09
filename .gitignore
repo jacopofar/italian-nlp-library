@@ -5,3 +5,6 @@ src/test/resources/
 .settings
 target/
 
+/description.txt
+/nb-configuration.xml
+/hs_err_pid12349.log

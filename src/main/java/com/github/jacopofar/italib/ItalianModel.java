@@ -1,3 +1,18 @@
+/* 
+ * Copyright 2014 Jacopo Farina.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.jacopofar.italib;
 
 import com.github.jacopofar.italib.ItalianVerbConjugation.ConjugationException;
@@ -34,6 +49,8 @@ import opennlp.tools.util.Span;
 /**
  * The main class to load an Italian language model and use it.
  * The model is based on Apache OpenNLP and the data extracted by com.github.jacopofar.conceptnetextractor
+ * Currently, the OpenNLP models are from https://github.com/aciapetti/opennlp-italian-models
+ * while the verb conjugations are from a dump of en.wiktionary
  * */
 public class ItalianModel {
     private final ConcurrentHashMap<String,Span[]> tagCache=new ConcurrentHashMap<>();
@@ -61,7 +78,7 @@ public class ItalianModel {
         }
         System.out.println("-----");
         for(String t:tokens)
-            System.out.println(t+":"+Arrays.deepToString(im.getPOSvalues(t)));
+            System.out.println(t+":"+Arrays.deepToString(im.getPoSvalues(t)));
         String[] verbi = {"andavamo","mangerò","volare","correre","puffavo","googlare"};
         HashMap<String,String> people=new HashMap<>(6);
         people.put("io", "1s");
@@ -243,14 +260,12 @@ public class ItalianModel {
             e.printStackTrace();
         }
         finally {
-            if (modelIn != null) {
                 try {
                     modelIn.close();
                 }
                 catch (IOException e) {
                     e.printStackTrace();
-                }
-            }
+                }     
         }
         
         //load the sentencer model for OpenNLP
@@ -389,7 +404,11 @@ public class ItalianModel {
     /**
      * Split a sentence into token and return the most ranked tag sequence using OpenNLP.
      * The dictionary of POS tags is not used
-     * */
+     *
+     * @param sentence the String to tokenize
+     * @return  the tokens found in the sentence, in the same order
+     
+     */
     public String[] quickPOSTag(String sentence){
         TokenizerME tokenizer;
         //wait to get a tokenizer
@@ -409,7 +428,14 @@ public class ItalianModel {
         
     }
     
-    protected String[] getPOSvalues(String word){
+    /**
+     * Return the PoS values from en.wiktionary.
+     * Those PoS are broader than the ones from getPoStags, and come from the parsing of a en.wiktionary dump.
+     * This method is provided for who's interested in comparing the tags from the two sources.
+     * @param word the word to classify
+     * @return the PoS values from the parsing of an en.wiktionary dump, or an empty array in case of no matches
+     */
+    protected String[] getPoSvalues(String word){
         try {
             PreparedStatement ps = connectionPOS.prepareStatement("SELECT types FROM POS_tags WHERE word=?");
             ps.setString(1, word);
@@ -442,7 +468,9 @@ public class ItalianModel {
     
     /**
      * Tokenize and run POS tagging on the given text, returns an array of spans, each with the POS tag as the Span type
-     * */
+     *
+     * @param text the text to tokenize and tag
+     * @return  an array of Spans, each Span will have the identified PoS tag as type, that can be retrieved using getType() */
     public Span[] getPosTags(String text) {
         Span[] spans;
         if(tagCache.containsKey(text))
@@ -485,7 +513,9 @@ public class ItalianModel {
     
     /**
      * Return the tokens in this text as Span
-     * */
+     *
+     * @param text the text to tokenize
+     * @return an array of Span instances, marking the start and end positions of each token */
     public Span[] getTokens(String text) {
         TokenizerME tokenizer;
         //wait to get a tokenizer
@@ -496,6 +526,10 @@ public class ItalianModel {
         return val;
     }
     
+    /**
+     * Return the list of the infinitive verbs in the database, currently about 9K entries
+     * 
+     */
     private Set<String> getAllKnownInfinitiveVerbs(){
         
         PreparedStatement ps;
@@ -515,7 +549,9 @@ public class ItalianModel {
     
     /**
      * Split a text in sentences, returning them as an array
-     * */
+     *
+     * @param text the text to split in sentences
+     * @return  an array of sentences*/
     public String[] getSentences(String text){
         SentenceDetectorME sentencer;
         //wait to get a tokenizer
@@ -526,7 +562,11 @@ public class ItalianModel {
         return val;
     }
 
-    
+    /**
+     * Tells whether a word is an Italian stopword
+     * @param token the word to examine
+     * @return true if the word is a stopword
+     */
     public boolean isStopWord(String token) {
         token=token.toLowerCase();
         return stopWords.contains(token);

@@ -1,18 +1,18 @@
-/* 
- * Copyright 2014 Jacopo Farina.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/*
+* Copyright 2014 Jacopo Farina.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.github.jacopofar.italib;
 
 import com.github.jacopofar.italib.ItalianVerbConjugation.ConjugationException;
@@ -36,8 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.sentdetect.SentenceDetectorME;
@@ -45,7 +43,8 @@ import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 /**
  * The main class to load an Italian language model and use it.
  * The model is based on Apache OpenNLP and the data extracted by com.github.jacopofar.conceptnetextractor
@@ -53,6 +52,8 @@ import opennlp.tools.util.Span;
  * while the verb conjugations are from a dump of en.wiktionary
  * */
 public class ItalianModel {
+    private static final Logger logger = LogManager.getLogger(ItalianModel.class.getName());
+    
     private final ConcurrentHashMap<String,Span[]> tagCache=new ConcurrentHashMap<>();
     private final static int MAX_POS_CACHE=300;
     private final HashSet<String> stopWords =new HashSet<>();
@@ -100,7 +101,7 @@ public class ItalianModel {
                     try {
                         System.out.println("conjugation: che "+pers.getKey()+" "+v.getConjugated());
                     } catch (ConjugationException e) {
-                        e.printStackTrace();
+                        logger.error("error conjugating verb",e);
                     }
                 }
             }
@@ -111,7 +112,8 @@ public class ItalianModel {
         try {
             Thread.sleep(10000);
         } catch (InterruptedException e1) {
-            e1.printStackTrace();
+            //doesn't really matter...
+            //logger.error(e1);
         }
         ItalianVerbConjugation fakeVerb = new ItalianVerbConjugation(im);
         int notInDB=0,
@@ -145,7 +147,7 @@ public class ItalianModel {
                     }
                 } catch (ConjugationException e) {
                     //should never happen
-                    e.printStackTrace();
+                    logger.error("error conjugating verb",e);
                 }
                 
             }
@@ -178,7 +180,7 @@ public class ItalianModel {
                             }
                         } catch (ConjugationException e) {
                             //should never happen
-                            e.printStackTrace();
+                            logger.error("error conjugating verb",e);
                         }
                     }
                 }
@@ -236,7 +238,7 @@ public class ItalianModel {
             //tokenizer = new TokenizerME(new TokenizerModel(modelIn));
         }
         catch (IOException e) {
-            e.printStackTrace();
+            logger.error("error opening the tokener model",e);
         }
         finally {
             
@@ -244,6 +246,7 @@ public class ItalianModel {
                 modelIn.close();
             }
             catch (IOException e) {
+                logger.error("error closing the tokener model",e);
             }
             
         }
@@ -257,15 +260,15 @@ public class ItalianModel {
             
         }
         catch (IOException e) {
-            e.printStackTrace();
+            logger.error("error opening the PoS tagger model",e);
         }
         finally {
-                try {
-                    modelIn.close();
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }     
+            try {
+                modelIn.close();
+            }
+            catch (IOException e) {
+                logger.error("error closing the poS tager model",e);
+            }
         }
         
         //load the sentencer model for OpenNLP
@@ -276,7 +279,7 @@ public class ItalianModel {
                 sentencers.add(new SentenceDetectorME(model));
             //sentencer=new SentenceDetectorME(new SentenceModel(modelInSentence));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("error opening the sentencer model",e);
         }
         //load the list of stopWords
         FileReader sfr = new FileReader(modelFolder+"/stopwords.txt");
@@ -286,7 +289,8 @@ public class ItalianModel {
             while((line=sbr.readLine())!=null)
                 stopWords.add(line);
         } catch (IOException ex) {
-            Logger.getLogger(ItalianModel.class.getName()).log(Level.SEVERE, null, ex);
+            logger.error("error opening the stopwords list model",ex);
+            
         }
     }
     
@@ -319,7 +323,7 @@ public class ItalianModel {
             }
             
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("error loading data from the verb conjugation database",e);
         }
         if(!forceIdentification || res.size()>0)
             return res;
@@ -363,7 +367,7 @@ public class ItalianModel {
                 return longest;
             
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("error loading data from the verb conjugation database",e);
         }
         return null;
     }
@@ -396,7 +400,7 @@ public class ItalianModel {
                 return longest;
             
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("error loading data from the verb conjugation database",e);
         }
         return null;
     }
@@ -407,23 +411,41 @@ public class ItalianModel {
      *
      * @param sentence the String to tokenize
      * @return  the tokens found in the sentence, in the same order
-     
+     *
      */
     public String[] quickPOSTag(String sentence){
         TokenizerME tokenizer;
         //wait to get a tokenizer
         while((tokenizer= tokenizers.poll())==null)
-            Thread.yield();
+            try {
+                synchronized(tokenizers){
+                    tokenizers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel tokening!",ex);
+            }
         
         POSTaggerME POStagger;
         //wait to get a PoS tagger
         while((POStagger= posTaggers.poll())==null)
-            Thread.yield();
+            try {
+                synchronized(posTaggers){
+                    posTaggers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel PoS-tagging!",ex);
+            }
         String[] val = POStagger.tag(tokenizer.tokenize(sentence));
         
         //give back the tokenizer and the tagger
         tokenizers.add(tokenizer);
+        synchronized(tokenizers){
+            tokenizers.notify();
+        }
         posTaggers.add(POStagger);
+        synchronized(posTaggers){
+            posTaggers.notify();
+        }
         return val;
         
     }
@@ -444,7 +466,7 @@ public class ItalianModel {
                 return rs.getString("types").split(",");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("error loading data from the verb PoS tags database",e);
         }
         return null;
     }
@@ -458,9 +480,18 @@ public class ItalianModel {
         TokenizerME tokenizer;
         //wait to get a tokenizer
         while((tokenizer= tokenizers.poll())==null)
-            Thread.yield();
+            try {
+                synchronized(tokenizers){
+                    tokenizers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel tokening!",ex);
+            }
         String[] val = tokenizer.tokenize(statement);
         tokenizers.add(tokenizer);
+        synchronized(tokenizers){
+            tokenizers.notify();
+        }
         return val;
         
     }
@@ -483,13 +514,25 @@ public class ItalianModel {
         
         TokenizerME tokenizer;
         //wait to get a tokenizer
-        while((tokenizer=tokenizers.poll())==null)
-            Thread.yield();
+        while((tokenizer= tokenizers.poll())==null)
+            try {
+                synchronized(tokenizers){
+                    tokenizers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel tokening!",ex);
+            }
         
         POSTaggerME POStagger;
         //wait to get a PoS tagger
-        while((POStagger=posTaggers.poll())==null)
-            Thread.yield();
+        while((POStagger= posTaggers.poll())==null)
+            try {
+                synchronized(posTaggers){
+                    posTaggers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel PoS-tagging!",ex);
+            }
         
         spans = tokenizer.tokenizePos(text);
         
@@ -499,14 +542,19 @@ public class ItalianModel {
         for(int i=0;i<spans.length;i++){
             spans[i]=new Span(spans[i].getStart(), spans[i].getEnd(), tags[i]);
         }
-                
+        
         tagCache.put(text, spans);
         
         
         //give back the tokenizer and the tagger
         tokenizers.add(tokenizer);
+        synchronized(tokenizers){
+            tokenizers.notify();
+        }
         posTaggers.add(POStagger);
-        
+        synchronized(posTaggers){
+            posTaggers.notify();
+        }
         return spans;
     }
     
@@ -520,15 +568,24 @@ public class ItalianModel {
         TokenizerME tokenizer;
         //wait to get a tokenizer
         while((tokenizer= tokenizers.poll())==null)
-            Thread.yield();
+            try {
+                synchronized(tokenizers){
+                    tokenizers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel tokening!",ex);
+            }
         Span[] val = tokenizer.tokenizePos(text);
         tokenizers.add(tokenizer);
+        synchronized(tokenizers){
+            tokenizers.notify();
+        }
         return val;
     }
     
     /**
      * Return the list of the infinitive verbs in the database, currently about 9K entries
-     * 
+     *
      */
     private Set<String> getAllKnownInfinitiveVerbs(){
         
@@ -541,7 +598,7 @@ public class ItalianModel {
                 res.add(rs.getString("infinitive"));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("error loading data from the verb conjugation database",e);
         }
         return res;
         
@@ -555,13 +612,23 @@ public class ItalianModel {
     public String[] getSentences(String text){
         SentenceDetectorME sentencer;
         //wait to get a tokenizer
-        while((sentencer= sentencers.poll())==null)
-            Thread.yield();
+        
+        while((sentencer=sentencers.poll())==null)
+            try {
+                synchronized(sentencers){
+                    sentencers.wait();
+                }
+            } catch (InterruptedException ex) {
+                logger.error("interruption applying parallel sentencing!",ex);
+            }
         String[] val = sentencer.sentDetect(text);
         sentencers.add(sentencer);
+        synchronized(sentencers){
+            sentencers.notify();
+        }
         return val;
     }
-
+    
     /**
      * Tells whether a word is an Italian stopword
      * @param token the word to examine

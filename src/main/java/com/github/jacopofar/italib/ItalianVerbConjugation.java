@@ -18,23 +18,28 @@ package com.github.jacopofar.italib;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 /**
  * Represents an Italian verb conjugation and provide methods to change the form, person and number according to a model for Italian
  * */
 public class ItalianVerbConjugation {
+        private static final Logger logger = LogManager.getLogger(ItalianVerbConjugation.class.getName());
+
 	@SuppressWarnings("serial")
 	public class ConjugationException extends Exception {
 
-		private String message;
+		private final String message;
 
 		public ConjugationException(String msg) {
 			this.message=msg;
 		}
+                @Override
 		public void printStackTrace(){
-			super.printStackTrace();
 			System.err.println("conjugation error: "+message);
 		}
 
@@ -57,14 +62,14 @@ public class ItalianVerbConjugation {
 	}
 	private String conjugated;
 	private String infinitive;
-	private static HashMap<String,String> defaultSuffixes= new HashMap<String,String>(100);
+	private final static HashMap<String,String> defaultSuffixes= new HashMap<>(100);
 	private char number='-';
 	private int person=0;
 	private Mode mode;
 	private ItalianModel model;
-	private static HashMap<Mode,String> modeRepresentations;
+	private final static HashMap<Mode,String> modeRepresentations;
 	static{
-		modeRepresentations=new HashMap<Mode,String>(11);
+		modeRepresentations=new HashMap<>(11);
 		modeRepresentations.put(Mode.INFINITIVE,"infinitive");
 		modeRepresentations.put(Mode.IMPERATIVE,"imperative");
 		modeRepresentations.put(Mode.GERUND,"gerund");
@@ -238,7 +243,7 @@ public class ItalianVerbConjugation {
 	}
 
 	public static Set<String> getImpersonalModes(){
-		HashSet<String> res=new HashSet<String>();
+		HashSet<String> res=new HashSet<>();
 		res.add(modeRepresentations.get(Mode.GERUND));
 		res.add(modeRepresentations.get(Mode.PAST_PARTICIPLE));
 		res.add(modeRepresentations.get(Mode.PRESENT_PARTICIPLE));
@@ -247,7 +252,7 @@ public class ItalianVerbConjugation {
 	}
 
 	public static Set<String> getPersonalModes() {
-		HashSet<String> res=new HashSet<String>();
+		HashSet<String> res=new HashSet<>();
 
 
 		res.add(modeRepresentations.get(Mode.INDICATIVE_PRESENT));
@@ -263,7 +268,10 @@ public class ItalianVerbConjugation {
 
 	/**
 	 * Instantiates a verb conjugation object starting from the string representation from the toStringRepresentation method
-	 * */
+	 *
+     * @param line the line being read, probably from a file
+     * @param delimiter the delimiter regex in the line
+     */
 	public ItalianVerbConjugation(String line, String delimiter) {
 		try{
 			String[] data = line.split(delimiter);
@@ -274,7 +282,7 @@ public class ItalianVerbConjugation {
 			this.person=Integer.parseInt(data[4]);
 		}catch(Exception e){
 			System.err.println("Offending verb string: "+line);
-			e.printStackTrace();
+			logger.error(e);
 			throw new RuntimeException("Error while instantiating the verb object");
 		}
 	}
@@ -390,7 +398,9 @@ public class ItalianVerbConjugation {
 	}
 	/**
 	 * Returns the mode and the time of the conjugation, for example "indicative past historic" 
-	 * */
+	 *
+     * @return  the mode of this verb, for example "indicative imperfect"
+     */
 	public String getMode() {
 		return modeRepresentations.get(mode);
 	}
@@ -404,13 +414,14 @@ public class ItalianVerbConjugation {
 		throw new RuntimeException("ERROR, the verbal mode '"+repr+"' is unknown");
 	}
 
+        @Override
 	public String toString(){
 		return this.toStringRepresentation(",");
 	}
 
 	public static Set<ItalianVerbConjugation> guessVerb(String word,
 			ItalianModel italianModel) {
-		HashSet<ItalianVerbConjugation> res = new HashSet<ItalianVerbConjugation>(4);
+		HashSet<ItalianVerbConjugation> res = new HashSet<>(4);
 
 		for(Entry<String, String> ds:defaultSuffixes.entrySet()){
 			if(word.endsWith(ds.getValue())){
@@ -427,7 +438,7 @@ public class ItalianVerbConjugation {
 				res.add(ic);
 			}
 		}
-		if(res.size()==0){
+		if(res.isEmpty()){
 			ItalianVerbConjugation ic = new ItalianVerbConjugation(italianModel);
 			ic.setConjugated(word+"are");
 			ic.infinitive=word+"are";
@@ -437,17 +448,40 @@ public class ItalianVerbConjugation {
 		return res;
 	}
 
+        @Override
 	public int hashCode(){
 		return this.toString().hashCode();
 	}
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final ItalianVerbConjugation other = (ItalianVerbConjugation) obj;
+        if (!Objects.equals(this.infinitive, other.infinitive)) {
+            return false;
+        }
+        if (this.number != other.number) {
+            return false;
+        }
+        if (this.person != other.person) {
+            return false;
+        }
+        if (this.mode != other.mode) {
+            return false;
+        }
+        return Objects.equals(this.model, other.model);
+    }
 
 	public static boolean isImpersonalMode(String mode2) {
 		for(Entry<Mode, String> mr:modeRepresentations.entrySet()){
 			if(mr.getValue().equals(mode2)){
 				Mode mode=mr.getKey();
-				if(mode==Mode.GERUND || mode==Mode.PAST_PARTICIPLE || mode==Mode.PRESENT_PARTICIPLE || mode==Mode.INFINITIVE)
-					return true;
-				else return false;
+                            return mode==Mode.GERUND || mode==Mode.PAST_PARTICIPLE || mode==Mode.PRESENT_PARTICIPLE || mode==Mode.INFINITIVE;
 			}
 		}
 		throw new RuntimeException("ERROR, the verbal mode '"+mode2+"' is unknown");

@@ -17,6 +17,8 @@ package com.github.jacopofar.italib;
 
 import com.github.jacopofar.italib.ItalianVerbConjugation.ConjugationException;
 import com.github.jacopofar.italib.postagger.POSUtils;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,7 +36,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
@@ -54,7 +55,8 @@ import org.apache.logging.log4j.Logger;
 public class ItalianModel {
     private static final Logger logger = LogManager.getLogger(ItalianModel.class.getName());
     
-    private final ConcurrentHashMap<String,Span[]> tagCache=new ConcurrentHashMap<>();
+    private final Cache<String,Span[]> tagCache=CacheBuilder.newBuilder().build();
+            //new ConcurrentHashMap<>();
     private final static int MAX_POS_CACHE=300;
     private final HashSet<String> stopWords =new HashSet<>();
     public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, ConjugationException {
@@ -504,11 +506,9 @@ public class ItalianModel {
      * @return  an array of Spans, each Span will have the identified PoS tag as type, that can be retrieved using getType() */
     public Span[] getPosTags(String text) {
         Span[] spans;
-        if(tagCache.containsKey(text))
-            return tagCache.get(text);
-        if(tagCache.size()>MAX_POS_CACHE)
-            tagCache.clear();
-        
+        Span[] returnMe = tagCache.getIfPresent(text);
+        if(returnMe!=null)
+            return returnMe;
         
         String[] tags;
         

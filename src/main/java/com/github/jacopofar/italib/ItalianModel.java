@@ -57,7 +57,6 @@ public class ItalianModel {
     
     private final Cache<String,Span[]> tagCache=CacheBuilder.newBuilder().build();
             //new ConcurrentHashMap<>();
-    private final static int MAX_POS_CACHE=300;
     private final HashSet<String> stopWords =new HashSet<>();
     public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, ConjugationException {
         ItalianModel im = new ItalianModel();

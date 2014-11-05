@@ -55,7 +55,7 @@ import org.apache.logging.log4j.Logger;
 public class ItalianModel {
     private static final Logger logger = LogManager.getLogger(ItalianModel.class.getName());
     
-    private final Cache<String,Span[]> tagCache=CacheBuilder.newBuilder().build();
+    private final Cache<String,Span[]> tagCache=CacheBuilder.newBuilder().maximumSize(8000).build();
             //new ConcurrentHashMap<>();
     private final HashSet<String> stopWords =new HashSet<>();
     public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, ConjugationException {

@@ -10,3 +10,5 @@ before_install:
   - ls && mkdir -p target/test-classes && cp -v it-token.bin target/test-classes
   - wget https://github.com/jacopofar/italian-nlp-library/releases/download/v0.1/it-sent.bin
   - cp -v it-sent.bin target/test-classes
+  - wget https://github.com/jacopofar/italian-nlp-library/releases/download/v0.1/it-pos-maxent.bin
+  - cp -v it-pos-maxent.bin target/test-classes

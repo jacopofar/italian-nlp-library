@@ -12,3 +12,5 @@ before_install:
   - cp -v it-sent.bin target/test-classes
   - wget https://github.com/jacopofar/italian-nlp-library/releases/download/v0.1/it-pos-maxent.bin
   - cp -v it-pos-maxent.bin target/test-classes
+  - wget https://github.com/jacopofar/italian-nlp-library/releases/download/v0.1/stopwords.txt
+  - cp -v stopwords.txt target/test-classes

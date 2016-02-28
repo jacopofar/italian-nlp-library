@@ -1,6 +1,7 @@
-italian-nlp-library
-===================
 [![Build Status](https://travis-ci.org/jacopofar/italian-nlp-library.svg?branch=master)](https://travis-ci.org/jacopofar/italian-nlp-library)
+
+Italian NLP library
+===================
 
 A Java 8 library to perform NLP tasks on Italian language, more specifically is able to:
 

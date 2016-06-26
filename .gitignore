@@ -4,7 +4,7 @@ src/test/resources/
 .project
 .settings
 target/
-
+.idea
 /description.txt
 /nb-configuration.xml
 /hs_err_pid12349.log

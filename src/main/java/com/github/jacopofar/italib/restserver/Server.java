@@ -7,11 +7,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.jacopofar.italib.ItalianModel;
 import com.github.jacopofar.italib.postagger.POSUtils;
 import opennlp.tools.util.Span;
+import spark.Response;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 import static spark.Spark.*;
 
@@ -46,8 +49,10 @@ public class Server {
             response.status(400);
             response.body(exception.getMessage());
         });
-
-        post("/postagger", (request, response) -> {
+        /**
+         * Annotate only a given list of POS, marking them with no other annotations
+         * */
+        post("/posmatch", (request, response) -> {
             ObjectMapper mapper = new ObjectMapper();
             AnnotationRequest ar = mapper.readValue(request.body(), AnnotationRequest.class);
             if(ar.errorMessages().size() != 0){
@@ -64,22 +69,72 @@ public class Server {
             if(acceptedTags.isEmpty())
                 throw new RuntimeException("tag regex "+tagRegex+" not recognized, possible tags: " + Arrays.toString(POSUtils.getPossibleTags()));
             Span[] spans = im.getPosTags(ar.getText());
-            //TODO add an helper to create a list on Annotations and send them directly
-            JsonNodeFactory nodeFactory = JsonNodeFactory.instance;
-            ObjectNode retVal = nodeFactory.objectNode();
-            ArrayNode annotationArray = retVal.putArray("annotations");
+            List<Annotation> anns = new ArrayList<>();
+
             for(Span s:spans){
                 if(acceptedTags.contains(s.getType())){
-                    ObjectNode annotation = nodeFactory.objectNode();
-                    annotation.put("span_start", s.getStart());
-                    annotation.put("span_end", s.getEnd());
-                    annotation.put("type",s.getType());
-                    annotationArray.add(annotation);
+                   anns.add(new Annotation(s.getStart(), s.getEnd()));
                 }
             }
 
-            response.type("application/json");
-            return retVal.toString();
+            return sendAnnotations(anns, response);
         });
+
+        /**
+         * Annotate all of the tokens with the tag type as the annotation
+         * */
+        post("/postagger", (request, response) -> {
+            ObjectMapper mapper = new ObjectMapper();
+            AnnotationRequest ar = mapper.readValue(request.body(), AnnotationRequest.class);
+            if(ar.errorMessages().size() != 0){
+                response.status(400);
+                return "invalid request body. Errors: " + ar.errorMessages() ;
+            }
+
+            Span[] spans = im.getPosTags(ar.getText());
+            List<Annotation> anns = new ArrayList<>();
+
+            for(Span s:spans){
+                ObjectNode posNote = JsonNodeFactory.instance.objectNode();
+                posNote.put("POS",s.getType());
+                anns.add(new Annotation(s.getStart(), s.getEnd(), posNote));
+            }
+
+            return sendAnnotations(anns, response);
+        });
+
+        /**
+         * List the POS tags used by the library
+         * */
+        get("/pos", (request, response) -> {
+            ArrayNode annotationArray =  JsonNodeFactory.instance.arrayNode();
+            for(String tag:POSUtils.getPossibleTags()){
+                ObjectNode POS = JsonNodeFactory.instance.objectNode();
+                POS.put("tag", tag);
+                POS.put("description", POSUtils.getDescription(tag));
+                annotationArray.add(POS);
+            }
+            response.type("application/json");
+            return annotationArray.toString();
+        });
+
+
+    }
+    private static String sendAnnotations( List<Annotation> list, Response res){
+        JsonNodeFactory nodeFactory = JsonNodeFactory.instance;
+        ObjectNode retVal = nodeFactory.objectNode();
+        ArrayNode annotationArray = retVal.putArray("annotations");
+
+        for(Annotation ann:list){
+            ObjectNode annotation = nodeFactory.objectNode();
+            annotation.put("span_start", ann.getStart());
+            annotation.put("span_end", ann.getEnd());
+            if(ann.getAnnotation() != null){
+                annotation.set("annotation", ann.getAnnotation());
+            }
+            annotationArray.add(annotation);
+        }
+        res.type("application/json");
+        return retVal.toString();
     }
 }

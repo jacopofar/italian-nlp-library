@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.jacopofar.italib.ItalianModel;
+import com.github.jacopofar.italib.ItalianVerbConjugation;
 import com.github.jacopofar.italib.postagger.POSUtils;
 import opennlp.tools.util.Span;
 import spark.Response;
@@ -19,7 +20,7 @@ import java.util.List;
 import static spark.Spark.*;
 
 /**
- * Expose the italian NLP library functionalities as REST services
+ * Exposes the Italian NLP library functions as REST services
  */
 public class Server {
     private static ItalianModel im = null;
@@ -117,6 +118,64 @@ public class Server {
             response.type("application/json");
             return annotationArray.toString();
         });
+
+        /**
+         * Annotate the verbs matching the given congjugations
+         * */
+        post("/verbconjugations", (request, response) -> {
+            ObjectMapper mapper = new ObjectMapper();
+            AnnotationRequest ar = mapper.readValue(request.body(), AnnotationRequest.class);
+            if(ar.errorMessages().size() != 0){
+                response.status(400);
+                return "invalid request body. Errors: " + ar.errorMessages() ;
+            }
+            VerbFilter vf = null;
+            if(ar.getParameter().startsWith("{")){
+                vf = mapper.readValue(ar.getParameter(), VerbFilter.class);
+            }
+            else{
+                vf = new VerbFilter(ar.getParameter());
+            }
+
+
+            HashSet<CharSequence> accepted=new HashSet<> ();
+            ItalianVerbConjugation v = new ItalianVerbConjugation(im);
+            v.setInfinitive(vf.getInfinitive());
+            for(String mode:ItalianVerbConjugation.getImpersonalModes()){
+                if(vf.getMode() != null && !vf.getMode().equals(mode))
+                    continue;
+                v.setMode(mode);
+                accepted.add(v.getConjugated());
+            }
+            for(String mode:ItalianVerbConjugation.getPersonalModes()){
+                if(vf.getMode() != null && !vf.getMode().equals(mode))
+                    continue;
+                for(int person:new Integer[]{1,2,3}){
+                    if(vf.getPerson() != null && vf.getPerson() != person)
+                        continue;
+                    for(char num:new Character[]{'s','p'}){
+                        if(vf.getNumber() != null && !vf.getNumber().equals(num+""))
+                            continue;
+                        if(mode.equals("imperative") && person==1 && num=='s')
+                            continue;
+                        v.setMode(mode);
+                        v.setNumber(num);
+                        v.setPerson(person);
+                        accepted.add(v.getConjugated());
+                    }
+                }
+            }
+            List<Annotation> anns = new ArrayList<>();
+            System.out.println(accepted.toString());
+            for(Span token:im.getTokens(ar.getText())){
+                System.out.println("esamino '"+token.getCoveredText(ar.getText().toLowerCase())+"'");
+                if(accepted.contains(token.getCoveredText(ar.getText().toLowerCase()))){
+                    anns.add(new Annotation(token.getStart(),token.getEnd()));
+                }
+            }
+            return sendAnnotations(anns, response);
+        });
+
 
 
     }

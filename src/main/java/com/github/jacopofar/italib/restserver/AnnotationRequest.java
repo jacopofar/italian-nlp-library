@@ -3,7 +3,7 @@ package com.github.jacopofar.italib.restserver;
 import java.util.LinkedList;
 
 /**
- * Created by utente on 2016-06-26.
+ * Created on 2016-06-26.
  */
 public class AnnotationRequest {
     String parameter;

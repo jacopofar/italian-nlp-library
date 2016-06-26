@@ -15,13 +15,14 @@
  */
 package com.github.jacopofar.italib;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -305,6 +306,9 @@ public class ItalianVerbConjugation {
 			if(this.conjugated==null){
 				if(!guess)
 					throw new ConjugationException("conjugation not in the database, guessing disabled");
+				if(this.infinitive.length()<4){
+					throw new ConjugationException("the verb '"+infinitive+"' is not really a verb and cannot be conjugated");
+				}
 				String defaultSuffix=ItalianVerbConjugation.defaultSuffixes.get(this.infinitive.substring(this.infinitive.length()-3,this.infinitive.length())+","+this.getMode());
 				if(defaultSuffix==null)
 					throw new ConjugationException("conjugation unknown for the verb "+infinitive+" and mode "+this.getMode());
@@ -327,6 +331,9 @@ public class ItalianVerbConjugation {
 			if(this.conjugated==null){
 				if(!guess)
 					throw new ConjugationException("conjugation not in the database, guessing disabled");
+				if(this.infinitive.length()<4){
+					throw new ConjugationException("the verb '"+infinitive+"' is not really a verb and cannot be conjugated");
+				}
 				String searchFor=this.infinitive.substring(this.infinitive.length()-3,this.infinitive.length())+","+this.getMode()+","+this.person+","+this.number;
 				String defaultSuffix=defaultSuffixes.get(searchFor);
 				if(defaultSuffix==null)
@@ -405,6 +412,7 @@ public class ItalianVerbConjugation {
 		return modeRepresentations.get(mode);
 	}
 	public void setMode(String repr) {
+		this.conjugated=null;
 		for(Entry<Mode, String> mr:modeRepresentations.entrySet()){
 			if(mr.getValue().equals(repr)){
 				this.mode= mr.getKey();

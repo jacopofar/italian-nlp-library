@@ -95,11 +95,6 @@ limitations under the License.
             <version>2.5</version>
         </dependency>
         <dependency>
-            <groupId>com.github.jacopofar.fleximatcher</groupId>
-            <artifactId>fleximatcher</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.4</version>

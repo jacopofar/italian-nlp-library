@@ -8,14 +8,13 @@ import com.github.jacopofar.italib.ItalianModel;
 import com.github.jacopofar.italib.ItalianVerbConjugation;
 import com.github.jacopofar.italib.postagger.POSUtils;
 import opennlp.tools.util.Span;
+import org.json.JSONException;
+import org.json.JSONObject;
 import spark.Response;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static spark.Spark.*;
 
@@ -115,7 +114,7 @@ public class Server {
                 POS.put("description", POSUtils.getDescription(tag));
                 annotationArray.add(POS);
             }
-            response.type("application/json");
+            response.type("application/json; charset=utf-8");
             return annotationArray.toString();
         });
 
@@ -168,13 +167,55 @@ public class Server {
             List<Annotation> anns = new ArrayList<>();
             System.out.println(accepted.toString());
             for(Span token:im.getTokens(ar.getText())){
-                System.out.println("esamino '"+token.getCoveredText(ar.getText().toLowerCase())+"'");
                 if(accepted.contains(token.getCoveredText(ar.getText().toLowerCase()))){
                     anns.add(new Annotation(token.getStart(),token.getEnd()));
                 }
             }
             return sendAnnotations(anns, response);
         });
+
+        /**
+         * Get the conjugations of a given infinitive verb
+         * */
+        get("/conjugations/:verb", (request, response) -> {
+            String infinitive = request.params(":verb").toLowerCase();
+            if(!infinitive.matches(".+[aei]re")){
+                response.status(400);
+                return "the verb doesn't end with are, ere or ire, it's not an infinitive";
+            }
+            ItalianVerbConjugation v = new ItalianVerbConjugation(im);
+            v.setInfinitive(infinitive);
+            HashMap<String,String> conjugations = new HashMap<>(30);
+
+            for(String mode:ItalianVerbConjugation.getImpersonalModes()){
+                v.setMode(mode);
+                conjugations.put(mode,v.getConjugated());
+            }
+            for(String mode:ItalianVerbConjugation.getPersonalModes()){
+                for(int person:new Integer[]{1,2,3}){
+                    for(char num:new Character[]{'s','p'}){
+                        if(mode.equals("imperative") && person==1 && num=='s')
+                            continue;
+                        v.setMode(mode);
+                        v.setNumber(num);
+                        v.setPerson(person);
+                        conjugations.put(mode + " " + person + num,v.getConjugated());
+                    }
+                }
+            }
+
+            JSONObject retList = new JSONObject();
+            conjugations.entrySet().stream().forEach(c -> {
+                try {
+                    retList.put(c.getKey(), c.getValue());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            });
+            response.type("application/json; charset=utf-8");
+            return retList.toString();
+        });
+
 
 
 
@@ -193,7 +234,7 @@ public class Server {
             }
             annotationArray.add(annotation);
         }
-        res.type("application/json");
+        res.type("application/json; charset=utf-8");
         return retVal.toString();
     }
 }

@@ -95,9 +95,9 @@ public class Server {
         post("/postagger", (request, response) -> {
             ObjectMapper mapper = new ObjectMapper();
             AnnotationRequest ar = mapper.readValue(request.body(), AnnotationRequest.class);
-            if(ar.errorMessages().size() != 0){
+            if(ar.getText() == null) {
                 response.status(400);
-                return "invalid request body. Errors: " + ar.errorMessages() ;
+                return "invalid request body. No text specified " ;
             }
 
             Span[] spans = im.getPosTags(ar.getText());

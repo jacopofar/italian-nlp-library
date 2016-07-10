@@ -120,6 +120,5 @@ limitations under the License.
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <netbeans.hint.license>apache20</netbeans.hint.license>
     </properties>
 </project>

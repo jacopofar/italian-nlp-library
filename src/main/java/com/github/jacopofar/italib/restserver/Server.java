@@ -47,8 +47,17 @@ public class Server {
             System.out.println("Exception:");
             exception.printStackTrace(System.out);
             response.status(400);
-            response.body(exception.getMessage());
+            JSONObject exc = new JSONObject();
+            try {
+                exc.put("error",exception.toString());
+            } catch (JSONException e) {
+                //can never happen...
+                e.printStackTrace();
+            }
+            response.type("application/json; charset=utf-8");
+            response.body(exc.toString());
         });
+
         /**
          * Annotate only a given list of POS, marking them with no other annotations
          * */

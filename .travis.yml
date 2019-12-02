@@ -1,6 +1,6 @@
 language: java
 jdk:
-  - oraclejdk8
+  - oraclejdk12
 before_install:
   - wget https://github.com/jacopofar/italian-nlp-library/releases/download/v0.1/it_verb_model.db
   - ls && mkdir -p target/test-classes && cp -v it_verb_model.db target/test-classes

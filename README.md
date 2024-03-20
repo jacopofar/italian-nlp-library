@@ -1,3 +1,7 @@
+## Deprecation
+
+This library is not maintained since years, so it is now archived. I recommend [Spacy](https://spacy.io/) for NLP tasks and [Wiktextract](https://github.com/tatuylonen/wiktextract) for a lexical database (for Italian or pretty much every language).
+
 [![Build Status](https://travis-ci.org/jacopofar/italian-nlp-library.svg?branch=master)](https://travis-ci.org/jacopofar/italian-nlp-library)
 
 Italian NLP library
